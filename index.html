@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>학생 사진 자동 분류기 — Nothing Design System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- 1. Top Instrument Header -->
+    <header class="header-bar">
+      <div class="brand-section">
+        <span class="signature-dot"></span>
+        <div>
+          <h1 class="app-title">학생 사진 자동 분류기</h1>
+          <p class="app-subtitle">온디바이스 얼굴인식 및 다중 사진 자동 분류 시스템 // 100% 로컬 오프라인 보안</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btnCreateSample" class="btn-secondary" title="테스트용 학생 및 사진 샘플 폴더를 자동 생성합니다">
+          ✦ 테스트 예제 생성
+        </button>
+        <button id="btnThemeToggle" class="btn-theme" title="다크 모드 / 라이트 모드 전환">
+          ☾
+        </button>
+      </div>
+    </header>
+
+    <!-- 2. KPI Instrument Matrix (색띠 완전 배제) -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-label">총 대상 사진</span>
+        <span id="kpiTotalScanned" class="kpi-val">0</span>
+        <span class="kpi-sub">스캔 대기 및 처리 장수</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">학생 매칭 성공</span>
+        <span id="kpiClassified" class="kpi-val">0</span>
+        <span class="kpi-sub">학생 폴더로 분류 완료</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">단체 사진 (다중 분류)</span>
+        <span id="kpiMultiPerson" class="kpi-val">0</span>
+        <span class="kpi-sub">2명 이상 중복 복사된 사진</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">미분류 (확인 필요)</span>
+        <span id="kpiUnclassified" class="kpi-val">0</span>
+        <span class="kpi-sub">_미분류 폴더로 격리 보관</span>
+      </div>
+    </section>
+
+    <!-- 3. Main Operational Interface -->
+    <main class="main-grid">
+      <!-- Left Configuration Panel -->
+      <section class="panel">
+        <div class="panel-title-bar">
+          <h2 class="panel-title">분류 설정 및 폴더 지정</h2>
+          <span class="panel-step-badge">설정 01</span>
+        </div>
+
+        <!-- 1) 학생 기준 폴더 -->
+        <div class="folder-field">
+          <div class="field-label-row">
+            <label class="field-label" for="profileDirPath">1. 학생 기준 사진 폴더</label>
+            <span class="field-hint">학생별 이름 폴더</span>
+          </div>
+          <div class="drop-zone" id="dropZoneProfile">
+            <input type="text" id="profileDirPath" class="path-input" placeholder="학생 이름 폴더들이 모여있는 폴더 선택 또는 드래그" readonly>
+            <button id="btnSelectProfile" class="btn-secondary">폴더 선택</button>
+          </div>
+        </div>
+
+        <!-- 2) 분류 대상 사진 폴더 -->
+        <div class="folder-field">
+          <div class="field-label-row">
+            <label class="field-label" for="targetDirPath">2. 분류 대상 사진 폴더</label>
+            <span class="field-hint">정리할 활동/수업 사진</span>
+          </div>
+          <div class="drop-zone" id="dropZoneTarget">
+            <input type="text" id="targetDirPath" class="path-input" placeholder="분류할 원본 사진 폴더 선택 또는 드래그" readonly>
+            <button id="btnSelectTarget" class="btn-secondary">폴더 선택</button>
+          </div>
+        </div>
+
+        <!-- 3) 분류 결과 저장 폴더 -->
+        <div class="folder-field">
+          <div class="field-label-row">
+            <label class="field-label" for="outputDirPath">3. 분류 결과 저장 폴더</label>
+            <span class="field-hint">학생별 정리될 목적지</span>
+          </div>
+          <div class="drop-zone" id="dropZoneOutput">
+            <input type="text" id="outputDirPath" class="path-input" placeholder="결과물이 저장될 폴더 선택 또는 드래그" readonly>
+            <button id="btnSelectOutput" class="btn-secondary">폴더 선택</button>
+          </div>
+        </div>
+
+        <!-- 고급 옵션 -->
+        <div class="setting-item">
+          <div class="slider-header">
+            <span class="field-label">얼굴 매칭 정밀도 (유사도 기준)</span>
+            <span id="thresholdValBadge" class="slider-val-badge">0.40</span>
+          </div>
+          <input type="range" id="thresholdSlider" class="nothing-slider" min="0.25" max="0.65" step="0.01" value="0.40">
+          <span class="field-hint">값이 높을수록 오인식이 줄어들며, 낮을수록 다양한 표정도 적극 매칭합니다 (기본: 0.40).</span>
+        </div>
+
+        <div class="setting-item">
+          <label class="checkbox-row">
+            <input type="checkbox" id="checkMultiPerson" checked>
+            <span class="custom-checkbox"></span>
+            <span class="checkbox-label">단체 사진 다중 복사 (찍힌 모든 학생 폴더에 복사)</span>
+          </label>
+
+          <label class="checkbox-row">
+            <input type="checkbox" id="checkKeepOriginal" checked>
+            <span class="custom-checkbox"></span>
+            <span class="checkbox-label">원본 사진 보존 (안전 복사 모드)</span>
+          </label>
+        </div>
+
+        <!-- 실행 버튼 그룹 -->
+        <div class="action-buttons-row">
+          <button id="btnStartSort" class="btn-hero">
+            ▶  사진 분류 시작
+          </button>
+          <button id="btnCancelSort" class="btn-stop" style="display: none;">
+            ■  작업 중단
+          </button>
+        </div>
+
+        <button id="btnOpenOutput" class="btn-secondary" style="width: 100%;">
+          결과 저장 폴더 열기
+        </button>
+      </section>
+
+      <!-- Right Workspace Column -->
+      <section class="workspace-column">
+        <!-- 등록된 학생 명단 선반 -->
+        <div class="students-shelf">
+          <div class="panel-title-bar">
+            <h2 class="panel-title">
+              등록된 학생 명단
+              <span id="studentsTotalBadge" class="panel-step-badge">0명 등록</span>
+            </h2>
+            <div class="header-btn-group">
+              <button id="btnAddStudent" class="btn-sm btn-accent" title="새 학생 폴더 및 기준 사진 등록">+ 학생 등록</button>
+              <button id="btnReloadStudents" class="btn-sm">새로고침</button>
+            </div>
+          </div>
+          <div id="studentsCardsContainer" class="students-cards-container">
+            <div class="empty-students-notice">
+              학생 기준 사진 폴더를 선택하면 등록된 학생 목록과 기준 사진이 여기에 표시됩니다.
+            </div>
+          </div>
+        </div>
+
+        <!-- 실시간 진행 상태 메터 -->
+        <div class="instrument-meter-panel">
+          <div class="meter-header">
+            <div>
+              <span id="meterStatusText" class="meter-status-text">준비 완료</span>
+              <span id="meterSpeedBadge" class="meter-speed-badge"></span>
+            </div>
+            <span id="meterPercent" class="meter-percent">0%</span>
+          </div>
+          <div class="segmented-progress-track">
+            <div id="meterProgressFill" class="segmented-progress-fill"></div>
+          </div>
+          <span id="currentPhotoLabel" class="current-photo-label">사진 분류를 시작하면 실시간 처리 파일이 표시됩니다.</span>
+        </div>
+
+        <!-- 분류 결과 요약 카드 (완료 시 노출) -->
+        <div id="resultsShelf" class="results-shelf">
+          <div class="panel-title-bar">
+            <h2 class="panel-title">학생별 분류 결과</h2>
+            <button id="btnOpenOutputFolder" class="btn-sm">전체 결과 폴더 열기</button>
+          </div>
+          <div id="resultsGrid" class="results-grid"></div>
+        </div>
+
+        <!-- 실시간 터미널 콘솔 로그 -->
+        <div class="terminal-panel">
+          <div class="terminal-header">
+            <span>실시간 계측 로그</span>
+            <span id="engineStatusBadge">온디바이스 AI 활성</span>
+          </div>
+          <div id="terminalBody" class="terminal-body">
+            <div class="terminal-line">
+              <span class="terminal-time">[00:00:00]</span>
+              <span class="terminal-msg">시스템 초기화 완료. 온디바이스 얼굴인식 대기 중.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 학생 상세 관리 모달 (Nothing Design System Modal) -->
+    <div id="studentDetailModal" class="modal-overlay" style="display: none;">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-signature-dot"></span>
+            <h3 id="modalStudentTitle" class="modal-title">학생 기준 사진 관리</h3>
+          </div>
+          <button id="btnModalClose" class="btn-icon" title="닫기">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- 이름 수정 행 -->
+          <div class="modal-field-row">
+            <label class="modal-label" for="modalStudentNameInput">학생 이름</label>
+            <div class="modal-input-group">
+              <input type="text" id="modalStudentNameInput" class="nothing-input" placeholder="학생 이름">
+              <button id="btnRenameStudent" class="btn-secondary btn-sm">이름 변경</button>
+            </div>
+          </div>
+
+          <!-- 사진 관리 툴바 -->
+          <div class="modal-action-bar">
+            <div class="modal-action-left">
+              <span id="modalPhotoCountBadge" class="panel-step-badge">0장 등록</span>
+              <span class="field-hint">다양한 각도/표정 사진을 추가하면 인식률이 높아집니다.</span>
+            </div>
+            <div class="modal-action-right">
+              <button id="btnAddStudentPhotos" class="btn-secondary btn-sm">+ 기준 사진 추가</button>
+              <button id="btnOpenStudentFolder" class="btn-secondary btn-sm">📁 학생 폴더 열기</button>
+            </div>
+          </div>
+
+          <!-- 사진 썸네일 그리드 -->
+          <div id="modalPhotoGrid" class="modal-photo-grid">
+            <!-- 동적으로 사진 카드 렌더링 -->
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="btnDeleteStudent" class="btn-danger-outline btn-sm">학생 삭제</button>
+          <button id="btnModalCloseBottom" class="btn-secondary btn-sm">닫기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 새 학생 등록 모달 -->
+    <div id="addStudentModal" class="modal-overlay" style="display: none;">
+      <div class="modal-container modal-sm">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-signature-dot"></span>
+            <h3 class="modal-title">새 학생 등록</h3>
+          </div>
+          <button id="btnAddModalClose" class="btn-icon" title="닫기">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="modal-field-row">
+            <label class="modal-label" for="newStudentNameInput">학생 이름</label>
+            <input type="text" id="newStudentNameInput" class="nothing-input" placeholder="예: 김민준">
+          </div>
+          <p class="field-hint">등록 시 학생 기준 사진 폴더 내에 해당 학생 이름의 폴더가 생성됩니다.</p>
+        </div>
+
+        <div class="modal-footer">
+          <button id="btnConfirmAddStudent" class="btn-hero btn-sm">등록하기</button>
+          <button id="btnCancelAddStudent" class="btn-secondary btn-sm">취소</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

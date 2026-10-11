@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+*.dll
+*.so
+*.dylib
+
+# PyInstaller / Build Artifacts
+dist/
+build/
+*.spec
+*.exe
+
+# Environments
+.venv/
+env/
+venv/
+ENV/
+
+# Output Results
+sample_data/분류_결과/
+sample_data/분류결과/
+
+# Logs & Temporary files
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
